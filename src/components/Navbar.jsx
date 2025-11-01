@@ -16,22 +16,22 @@ export default function Navbar() {
   const router = useRouter();
 
   return (
-    <header className="border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 bg-white/90 dark:bg-gray-950/90 backdrop-blur">
+    <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-950/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 transition-all duration-300">
       <div className="container-responsive flex items-center justify-between h-16">
-        <Link href="/" className="font-extrabold tracking-tight text-xl">
-          <span className="text-primary">Bulking</span> Tracker <span className="text-accent">Ectomorph</span>
+        <Link href="/" className="font-extrabold tracking-tight text-xl transition-transform hover:scale-105">
+          <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Bulking Daily</span>
         </Link>
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-2">
           {navItems.map((item) => {
             const active = router.pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm transition ${
+                className={`text-sm transition-all duration-300 rounded-lg px-3 py-2 ${
                   active
-                    ? 'text-primary font-semibold'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-primary'
+                    ? 'bg-gradient-to-r from-primary/10 to-blue-500/10 text-primary font-semibold shadow-sm scale-105'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 hover:scale-105'
                 }`}
               >
                 {item.label}

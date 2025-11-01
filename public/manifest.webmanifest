@@ -1,6 +1,6 @@
 {
-  "name": "Bulking Tracker Ectomorph",
-  "short_name": "BulkingTracker",
+  "name": "Bulking Daily",
+  "short_name": "BulkingDaily",
   "description": "Mobile-first bulking tracker for ectomorphs",
   "start_url": "/",
   "scope": "/",

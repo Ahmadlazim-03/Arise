@@ -1,4 +1,3 @@
-import CardSection from '../components/CardSection';
 import WeightChart from '../components/WeightChart';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -55,58 +54,118 @@ export default function HomePage() {
     localStorage.setItem('workouts', String(next));
   };
 
+  const totalProgress = useMemo(() => {
+    const total = stats.exercises.total + stats.meals.total + stats.recovery.total;
+    const done = stats.exercises.done + stats.meals.done + stats.recovery.done;
+    return total > 0 ? Math.round((done / total) * 100) : 0;
+  }, [stats]);
+
   return (
-    <div className="space-y-6">
-      <div className="card p-5">
-        <h1 className="text-2xl font-extrabold tracking-tight mb-2">Selamat Datang di Bulking Tracker Ectomorph 💪</h1>
-        <p className="text-gray-600 dark:text-gray-300 text-sm">Pantau progres bulking-mu dari ponsel. Semua fitur dirancang mobile-first dan mudah digunakan.</p>
-      </div>
-
-      {/* Quick summary cards - mobile-first grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <CardSection title="⚖️ Berat Terkini" className="p-4">
-          <div className="text-2xl font-bold">{currentWeight} {currentWeight !== '-' ? 'kg' : ''}</div>
-          <p className="text-xs text-gray-500 mt-1">Dari input mingguan</p>
-        </CardSection>
-        <CardSection title="🏋️ Latihan Dilakukan" className="p-4">
-          <div className="flex items-center gap-3">
-            <button className="btn-primary" onClick={() => incWorkout(1)}>+1</button>
-            <button className="btn-accent" onClick={() => incWorkout(-1)}>-1</button>
-            <div className="text-2xl font-bold ml-auto">{workouts}</div>
+    <div className="space-y-4 pb-4">
+      <div className="card p-5 bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Bulking Daily
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{dateKey}</p>
           </div>
-          <p className="text-xs text-gray-500 mt-1">Hitung latihan minggu ini</p>
-        </CardSection>
-        <CardSection title="🔥 Rata-rata Kalori" className="p-4">
-          <div className="text-2xl font-bold">{avgCalories} {avgCalories !== '-' ? 'kcal' : ''}</div>
-          <p className="text-xs text-gray-500 mt-1">Dari input kalori harian</p>
-        </CardSection>
-      </div>
-
-  <CardSection title="✅ Progres Harian" className="p-4">
-        <div className="text-sm text-gray-600 dark:text-gray-300">
-          Tanggal: <span className="font-semibold">{dateKey}</span>
-        </div>
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-          <div className="card p-3">
-            <div className="font-semibold">Latihan (Exercises)</div>
-            <div className="text-gray-600 dark:text-gray-300 mt-1">{stats.exercises.done} / {stats.exercises.total} selesai</div>
-            <Link className="btn-primary mt-2 justify-center w-full" href="/jadwal">Buka</Link>
-          </div>
-          <div className="card p-3">
-            <div className="font-semibold">Pola Makan</div>
-            <div className="text-gray-600 dark:text-gray-300 mt-1">{stats.meals.done} / {stats.meals.total} selesai</div>
-            <Link className="btn-primary mt-2 justify-center w-full" href="/pola-makan">Buka</Link>
-          </div>
-          <div className="card p-3">
-            <div className="font-semibold">Recovery</div>
-            <div className="text-gray-600 dark:text-gray-300 mt-1">{stats.recovery.done} / {stats.recovery.total} selesai</div>
-            <Link className="btn-primary mt-2 justify-center w-full" href="/istirahat">Buka</Link>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-primary">{totalProgress}%</div>
+            <div className="text-xs text-gray-500">Progress</div>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button className="btn-accent" onClick={resetToday}>Reset Hari Ini</button>
-          <button className="btn-primary" onClick={exportToday}>Export Hari Ini (JSON)</button>
-          <button className="btn-primary" onClick={exportAll}>Export Semua Hari</button>
+        <div className="mt-4 progress-bar-bg">
+          <div className="progress-bar-fill" style={{ width: `${totalProgress}%` }} />
+        </div>
+      </div>
+
+      {/* Quick Stats Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <Link href="/jadwal" className="card p-4 hover:shadow-xl transition-all active:scale-95">
+          <div className="text-2xl font-bold text-primary">{stats.exercises.done}</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">of {stats.exercises.total}</div>
+          <div className="text-xs font-medium mt-2">Latihan</div>
+          <div className="mt-2 progress-bar-bg">
+            <div className="progress-bar-fill" style={{ width: `${stats.exercises.total ? (stats.exercises.done / stats.exercises.total * 100) : 0}%` }} />
+          </div>
+        </Link>
+
+        <Link href="/pola-makan" className="card p-4 hover:shadow-xl transition-all active:scale-95">
+          <div className="text-2xl font-bold text-accent">{stats.meals.done}</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">of {stats.meals.total}</div>
+          <div className="text-xs font-medium mt-2">Makan</div>
+          <div className="mt-2 progress-bar-bg">
+            <div className="h-full bg-gradient-to-r from-accent via-orange-500 to-accent rounded-full transition-all duration-500" style={{ width: `${stats.meals.total ? (stats.meals.done / stats.meals.total * 100) : 0}%` }} />
+          </div>
+        </Link>
+
+        <Link href="/istirahat" className="card p-4 hover:shadow-xl transition-all active:scale-95">
+          <div className="text-2xl font-bold text-green-600">{stats.recovery.done}</div>
+          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">of {stats.recovery.total}</div>
+          <div className="text-xs font-medium mt-2">Recovery</div>
+          <div className="mt-2 progress-bar-bg">
+            <div className="h-full bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 rounded-full transition-all duration-500" style={{ width: `${stats.recovery.total ? (stats.recovery.done / stats.recovery.total * 100) : 0}%` }} />
+          </div>
+        </Link>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="card p-4">
+        <h2 className="text-sm font-semibold mb-3">Catatan Cepat</h2>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+            <div className="text-sm font-medium min-w-[70px]">Workout</div>
+            <div className="flex gap-2">
+              <button className="w-10 h-10 rounded-lg bg-primary text-white font-bold shadow-md active:scale-90 transition-all" onClick={() => incWorkout(1)}>+</button>
+              <button className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 font-bold active:scale-90 transition-all" onClick={() => incWorkout(-1)}>-</button>
+            </div>
+            <div className="ml-auto text-xl font-bold text-primary">{workouts}</div>
+          </div>
+
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+            <div className="text-sm font-medium min-w-[70px]">Kalori</div>
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder="kcal"
+              className="input-modern flex-1 text-sm"
+              value={calInput}
+              onChange={(e) => setCalInput(e.target.value)}
+            />
+            <button className="btn-primary text-sm px-4" onClick={addCalories}>OK</button>
+          </div>
+
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+            <div className="text-sm font-medium min-w-[70px]">Berat</div>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="kg"
+              className="input-modern flex-1 text-sm"
+              value={weightInput}
+              onChange={(e) => setWeightInput(e.target.value)}
+            />
+            <button className="btn-primary text-sm px-4" onClick={addWeight}>OK</button>
+          </div>
+        </div>
+        <details className="mt-4">
+          <summary className="cursor-pointer select-none text-sm font-medium text-primary">
+            Lihat Grafik Progres Berat
+          </summary>
+          <div className="mt-3">
+            <WeightChart data={weights} />
+          </div>
+        </details>
+      </div>
+
+      {/* Data Management */}
+      <div className="card p-4">
+        <h2 className="text-sm font-semibold mb-3">Kelola Data</h2>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <button className="btn-outline" onClick={resetToday}>Reset Hari Ini</button>
+          <button className="btn-primary" onClick={exportToday}>Export Hari Ini</button>
+          <button className="btn-primary" onClick={exportAll}>Export Semua</button>
           <label className="btn-primary cursor-pointer">
             Import JSON
             <input type="file" accept="application/json" className="hidden" onChange={(e) => {
@@ -115,48 +174,6 @@ export default function HomePage() {
             }} />
           </label>
         </div>
-      </CardSection>
-
-      <CardSection title="📈 Grafik Progres Berat (Mingguan)">
-        <WeightChart data={weights} />
-        <div className="mt-3 flex gap-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="Berat (kg)"
-            className="flex-1 rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent px-3 py-2"
-            value={weightInput}
-            onChange={(e) => setWeightInput(e.target.value)}
-          />
-          <button className="btn-primary" onClick={addWeight}>Simpan</button>
-        </div>
-      </CardSection>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <CardSection title="🍽️ Catat Kalori Harian">
-          <div className="flex gap-2">
-            <input
-              type="number"
-              inputMode="numeric"
-              placeholder="Kalori (kcal)"
-              className="flex-1 rounded-lg border border-gray-200 dark:border-gray-800 bg-transparent px-3 py-2"
-              value={calInput}
-              onChange={(e) => setCalInput(e.target.value)}
-            />
-            <button className="btn-primary" onClick={addCalories}>Tambah</button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">Tips: target surplus +300–500 kalori/hari.</p>
-        </CardSection>
-
-        <CardSection title="🧭 Navigasi Cepat">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-            <Link className="btn-primary justify-center" href="/jadwal">Jadwal</Link>
-            <Link className="btn-primary justify-center" href="/pola-makan">Pola Makan</Link>
-            <Link className="btn-primary justify-center" href="/target">Target</Link>
-            <Link className="btn-primary justify-center" href="/istirahat">Istirahat</Link>
-            <Link className="btn-primary justify-center" href="/tips">Tips</Link>
-          </div>
-        </CardSection>
       </div>
     </div>
   );
