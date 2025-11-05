@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { scheduleData, mealsData, recoveryData } from '../utils/data';
+import { indoDayName } from '../utils/date';
 
 const ProgressContext = createContext(null);
 
@@ -11,9 +12,9 @@ const todayKey = () => {
   return `${y}-${m}-${day}`;
 };
 
-const buildDefaults = () => {
+const buildDefaults = (schedule = scheduleData) => {
   const exercises = {};
-  scheduleData.forEach((row) => {
+  (schedule || []).forEach((row) => {
     (row.exercises || []).forEach((ex) => {
       exercises[`${row.day}::${ex}`] = false;
     });
@@ -32,12 +33,21 @@ const buildDefaults = () => {
 export function ProgressProvider({ children }) {
   const initialDate = todayKey();
   const [dateKey, setDateKey] = useState(initialDate);
+  // Custom schedule management
+  const [customSchedule, setCustomScheduleState] = useState(() => {
+    try {
+      const raw = localStorage.getItem('schedule:custom');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  });
+  const schedule = useMemo(() => (Array.isArray(customSchedule) && customSchedule.length ? customSchedule : scheduleData), [customSchedule]);
   const readFromStorage = (key) => {
     try {
       const raw = localStorage.getItem(`progress:${key}`);
-      if (raw) return { ...buildDefaults(), ...JSON.parse(raw) };
+      if (raw) return { ...buildDefaults(schedule), ...JSON.parse(raw) };
     } catch (e) {}
-    return buildDefaults();
+    return buildDefaults(schedule);
   };
   const [progress, setProgress] = useState(() => readFromStorage(initialDate));
   const [loaded, setLoaded] = useState(true);
@@ -48,7 +58,7 @@ export function ProgressProvider({ children }) {
     const next = readFromStorage(dateKey);
     setProgress(next);
     setLoaded(true);
-  }, [dateKey]);
+  }, [dateKey, schedule]);
 
   // Persist on change (skip until initial load done)
   useEffect(() => {
@@ -66,22 +76,37 @@ export function ProgressProvider({ children }) {
   }, []);
 
   const resetToday = useCallback(() => {
-    const defaults = buildDefaults();
+    const defaults = buildDefaults(schedule);
     setProgress(defaults);
     try {
       localStorage.setItem(`progress:${dateKey}`, JSON.stringify(defaults));
     } catch (e) {}
-  }, [dateKey]);
+  }, [dateKey, schedule]);
 
   const stats = useMemo(() => {
-    const countTrue = (obj) => Object.values(obj || {}).filter(Boolean).length;
-    const len = (obj) => Object.keys(obj || {}).length;
+    // Exercises should be counted per-day (today only)
+    const dayName = indoDayName(dateKey);
+    const exerciseEntries = Object.entries(progress.exercises || {}).filter(([k]) =>
+      dayName ? k.startsWith(`${dayName}::`) : true
+    );
+    const exercisesDone = exerciseEntries.filter(([, v]) => !!v).length;
+    const exercisesTotal = exerciseEntries.length;
+
+    const mealEntries = Object.entries(progress.meals || {}).filter(([k]) =>
+      mealsData.some((r) => r.time === k)
+    );
+    const recoveryEntries = Object.entries(progress.recovery || {}).filter(([k]) =>
+      recoveryData.some((r) => r.activity === k)
+    );
+
+    const countTrue = (entries) => entries.filter(([, v]) => !!v).length;
+    const len = (entries) => entries.length;
     return {
-      exercises: { done: countTrue(progress.exercises), total: len(progress.exercises) },
-      meals: { done: countTrue(progress.meals), total: len(progress.meals) },
-      recovery: { done: countTrue(progress.recovery), total: len(progress.recovery) },
+      exercises: { done: exercisesDone, total: exercisesTotal },
+      meals: { done: countTrue(mealEntries), total: len(mealEntries) },
+      recovery: { done: countTrue(recoveryEntries), total: len(recoveryEntries) },
     };
-  }, [progress]);
+  }, [progress, dateKey]);
 
   const exportToday = useCallback(() => {
     const blob = new Blob([
@@ -131,13 +156,29 @@ export function ProgressProvider({ children }) {
       // Reload today if same date
       const key = `progress:${dateKey}`;
       const raw = localStorage.getItem(key);
-      if (raw) setProgress({ ...buildDefaults(), ...JSON.parse(raw) });
+      if (raw) setProgress({ ...buildDefaults(schedule), ...JSON.parse(raw) });
     } catch (e) {
       console.warn('Failed to import progress JSON', e);
     }
-  }, [dateKey]);
+  }, [dateKey, schedule]);
 
-  const value = useMemo(() => ({ dateKey, setDateKey, progress, toggle, resetToday, stats, exportToday, exportAll, importProgress }), [dateKey, progress, toggle, resetToday, stats, exportToday, exportAll, importProgress]);
+  // Schedule mutators
+  const setCustomSchedule = useCallback((nextSchedule) => {
+    try {
+      localStorage.setItem('schedule:custom', JSON.stringify(nextSchedule));
+    } catch {}
+    setCustomScheduleState(nextSchedule);
+    // Refresh today's progress keys with new defaults
+    setProgress((prev) => ({ ...buildDefaults(nextSchedule), ...prev }));
+  }, []);
+
+  const resetSchedule = useCallback(() => {
+    try { localStorage.removeItem('schedule:custom'); } catch {}
+    setCustomScheduleState(null);
+    setProgress((prev) => ({ ...buildDefaults(scheduleData), ...prev }));
+  }, []);
+
+  const value = useMemo(() => ({ dateKey, setDateKey, progress, toggle, resetToday, stats, exportToday, exportAll, importProgress, schedule, setCustomSchedule, resetSchedule }), [dateKey, progress, toggle, resetToday, stats, exportToday, exportAll, importProgress, schedule, setCustomSchedule, resetSchedule]);
 
   return (
     <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>

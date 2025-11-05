@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { indoDayName } from '../utils/date';
+import { mealsData, recoveryData } from '../utils/data';
 
 export default function HistoryPage() {
   const [days, setDays] = useState([]);
@@ -14,12 +16,28 @@ export default function HistoryPage() {
         try {
           const date = k.replace('progress:', '');
           const obj = JSON.parse(localStorage.getItem(k));
-          const count = (o) => Object.values(o || {}).filter(Boolean).length;
-          const total = (o) => Object.keys(o || {}).length;
-          entries.push({ date, obj, stats: {
-            exercises: { done: count(obj.exercises), total: total(obj.exercises) },
-            meals: { done: count(obj.meals), total: total(obj.meals) },
-            recovery: { done: count(obj.recovery), total: total(obj.recovery) },
+          const dayName = indoDayName(date);
+
+          // Exercises: filter only for that day's items
+          const exEntries = Object.entries(obj.exercises || {}).filter(([key]) =>
+            dayName ? key.startsWith(`${dayName}::`) : true
+          );
+
+          // Meals/Recovery: filter to known keys (ignore removed/legacy keys)
+          const mealEntries = Object.entries(obj.meals || {}).filter(([key]) =>
+            mealsData.some((r) => r.time === key)
+          );
+          const recEntries = Object.entries(obj.recovery || {}).filter(([key]) =>
+            recoveryData.some((r) => r.activity === key)
+          );
+
+          const count = (entries) => entries.filter(([, v]) => !!v).length;
+          const total = (entries) => entries.length;
+
+          entries.push({ date, obj, dayName, stats: {
+            exercises: { done: count(exEntries), total: total(exEntries) },
+            meals: { done: count(mealEntries), total: total(mealEntries) },
+            recovery: { done: count(recEntries), total: total(recEntries) },
           }});
         } catch (e) {}
       }
@@ -113,25 +131,31 @@ export default function HistoryPage() {
                     <section className="card p-3">
                       <div className="font-semibold mb-2">Exercises</div>
                       <ul className="list-disc pl-5 space-y-1 text-sm break-words">
-                        {Object.entries(d.obj.exercises || {}).map(([k, v]) => (
-                          <li key={k} className={v ? 'text-green-600 font-medium' : 'text-gray-500'}>{k.split('::')[1]} {v ? '✓' : ''}</li>
-                        ))}
+                        {Object.entries(d.obj.exercises || {})
+                          .filter(([k]) => d.dayName ? k.startsWith(`${d.dayName}::`) : true)
+                          .map(([k, v]) => (
+                            <li key={k} className={v ? 'text-green-600 font-medium' : 'text-gray-500'}>{k.split('::')[1]} {v ? '✓' : ''}</li>
+                          ))}
                       </ul>
                     </section>
                     <section className="card p-3">
                       <div className="font-semibold mb-2">Makan</div>
                       <ul className="list-disc pl-5 space-y-1 text-sm break-words">
-                        {Object.entries(d.obj.meals || {}).map(([k, v]) => (
-                          <li key={k} className={v ? 'text-green-600 font-medium' : 'text-gray-500'}>{k} {v ? '✓' : ''}</li>
-                        ))}
+                        {Object.entries(d.obj.meals || {})
+                          .filter(([k]) => mealsData.some((r) => r.time === k))
+                          .map(([k, v]) => (
+                            <li key={k} className={v ? 'text-green-600 font-medium' : 'text-gray-500'}>{k} {v ? '✓' : ''}</li>
+                          ))}
                       </ul>
                     </section>
                     <section className="card p-3">
                       <div className="font-semibold mb-2">Recovery</div>
                       <ul className="list-disc pl-5 space-y-1 text-sm break-words">
-                        {Object.entries(d.obj.recovery || {}).map(([k, v]) => (
-                          <li key={k} className={v ? 'text-green-600 font-medium' : 'text-gray-500'}>{k} {v ? '✓' : ''}</li>
-                        ))}
+                        {Object.entries(d.obj.recovery || {})
+                          .filter(([k]) => recoveryData.some((r) => r.activity === k))
+                          .map(([k, v]) => (
+                            <li key={k} className={v ? 'text-green-600 font-medium' : 'text-gray-500'}>{k} {v ? '✓' : ''}</li>
+                          ))}
                       </ul>
                     </section>
                   </div>

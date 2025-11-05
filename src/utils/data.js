@@ -123,7 +123,6 @@ export const recoveryData = [
   { activity: 'Waktu tidur ideal', detail: '22.00 – 06.00' },
   { activity: 'Stretching', detail: 'Setelah latihan 10–15 menit' },
   { activity: 'Minum air putih', detail: '2–3 liter per hari' },
-  { activity: 'Hari libur (Minggu)', detail: 'Pemulihan otot & makan kalori lebih' },
 ];
 
 export const successTips = [

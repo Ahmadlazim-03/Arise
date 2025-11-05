@@ -7,28 +7,20 @@ export default function HomePage() {
   const { stats, resetToday, exportToday, exportAll, importProgress, dateKey } = useProgress();
   const [weights, setWeights] = useState([]); // [{label, weight}]
   const [weightInput, setWeightInput] = useState('');
-  const [calEntries, setCalEntries] = useState([]); // [{date, calories}]
-  const [calInput, setCalInput] = useState('');
   const [workouts, setWorkouts] = useState(0);
+  const [weightRange, setWeightRange] = useState(8); // last N points
 
   // Load from localStorage
   useEffect(() => {
     try {
       const w = JSON.parse(localStorage.getItem('weights') || '[]');
-      const c = JSON.parse(localStorage.getItem('calories') || '[]');
       const wk = parseInt(localStorage.getItem('workouts') || '0', 10);
       setWeights(Array.isArray(w) ? w : []);
-      setCalEntries(Array.isArray(c) ? c : []);
       setWorkouts(Number.isFinite(wk) ? wk : 0);
     } catch (e) {}
   }, []);
 
   const currentWeight = weights.length ? weights[weights.length - 1].weight : '-';
-  const avgCalories = useMemo(() => {
-    if (!calEntries.length) return '-';
-    const sum = calEntries.reduce((acc, x) => acc + (Number(x.calories) || 0), 0);
-    return Math.round(sum / calEntries.length);
-  }, [calEntries]);
 
   const addWeight = () => {
     const value = Number(weightInput);
@@ -39,14 +31,7 @@ export default function HomePage() {
     setWeightInput('');
   };
 
-  const addCalories = () => {
-    const value = Number(calInput);
-    if (!value || value <= 0) return;
-    const next = [...calEntries, { date: new Date().toISOString(), calories: value }];
-    setCalEntries(next);
-    localStorage.setItem('calories', JSON.stringify(next));
-    setCalInput('');
-  };
+  // (Calories feature removed)
 
   const incWorkout = (delta) => {
     const next = Math.max(0, workouts + delta);
@@ -59,6 +44,10 @@ export default function HomePage() {
     const done = stats.exercises.done + stats.meals.done + stats.recovery.done;
     return total > 0 ? Math.round((done / total) * 100) : 0;
   }, [stats]);
+
+  const weightsToShow = useMemo(() => {
+    return (weights || []).slice(-weightRange);
+  }, [weights, weightRange]);
 
   return (
     <div className="space-y-4 pb-4">
@@ -123,18 +112,7 @@ export default function HomePage() {
             <div className="ml-auto text-xl font-bold text-primary">{workouts}</div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-            <div className="text-sm font-medium min-w-[70px]">Kalori</div>
-            <input
-              type="number"
-              inputMode="numeric"
-              placeholder="kcal"
-              className="input-modern flex-1 text-sm"
-              value={calInput}
-              onChange={(e) => setCalInput(e.target.value)}
-            />
-            <button className="btn-primary text-sm px-4" onClick={addCalories}>OK</button>
-          </div>
+          {/* (Calories input removed) */}
 
           <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
             <div className="text-sm font-medium min-w-[70px]">Berat</div>
@@ -149,14 +127,34 @@ export default function HomePage() {
             <button className="btn-primary text-sm px-4" onClick={addWeight}>OK</button>
           </div>
         </div>
-        <details className="mt-4">
-          <summary className="cursor-pointer select-none text-sm font-medium text-primary">
-            Lihat Grafik Progres Berat
-          </summary>
-          <div className="mt-3">
-            <WeightChart data={weights} />
-          </div>
-        </details>
+      </div>
+
+      {/* Charts (Weight only) */}
+      <div className="card p-4">
+        <h2 className="text-sm font-semibold mb-3">Grafik</h2>
+        <div className="space-y-6">
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-gray-600 dark:text-gray-400">Progres Berat</div>
+              <div className="flex gap-1">
+                {[4,8,12].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setWeightRange(n)}
+                    className={`px-2 py-1 rounded-md text-xs font-medium ${weightRange===n? 'bg-primary text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {weightsToShow.length ? (
+              <WeightChart data={weightsToShow} />
+            ) : (
+              <div className="text-xs text-gray-500">Belum ada data berat. Tambahkan di bagian Catatan Cepat.</div>
+            )}
+          </section>
+        </div>
       </div>
 
       {/* Data Management */}
